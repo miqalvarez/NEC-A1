@@ -2,9 +2,9 @@ import numpy as np
 
 # Neural Network class
 class MyNeuralNetwork:
-  def __init__(self, layers, activation_function, perc, dataset, units, epochs, learning_rate, momentum):
+  def __init__(self, layers, activation_function, perc, dataset, epochs, learning_rate, momentum):
     self.L = len(layers)                  # number of layers
-    self.n = units                        # number of neurons in each layer
+    self.n = layers.copy()                        # number of neurons in each layer
     self.h = []                           # field values.
     for lay in range(self.L):
       self.h.append(np.zeros(layers[lay]))
@@ -46,32 +46,84 @@ class MyNeuralNetwork:
       self.w.append(np.zeros((layers[lay], layers[lay - 1])))
 
     self.perc = perc                      # percentage of training data
-    self.epochs = epochs                  # number of epochs
+    self.n_epochs = epochs                # number of epochs
     self.learning_rate = learning_rate    # learning rate
     self.momentum = momentum              # momentum
     self.dataset = dataset                # dataset
     self.fact = activation_function       # activation function
+    
+    # Initialize all weights and thresholds randomly
+    for lay in range(1, self.L):
+      self.w[lay] = np.random.rand(self.n[lay], self.n[lay - 1]) - 0.5
+      self.theta[lay] = np.random.rand(self.n[lay]) - 0.5
+    
+    if self.perc != 0:
+      self.training_set = int(self.perc * len(self.dataset))
+          
+      self.train_set = self.dataset[:self.training_set]
+      self.valid_set = self.dataset[self.training_set:]
+
+    else:
+      self.training_set = len(self.dataset)
 
     def fit(self, X, y):
-      print("fit")
+      for epoch in range(1, self.n_epochs):
+        for pat in range(self.training_set):
+          # Choose a random pattern xµ from the training set
+          xu = np.random.randint(0, self.training_set)
+
+          feed_forward(X[xu])
+          back_propagation()
+          update_weights()
+
+        # todo: Feed−forward all training patterns and calculate their prediction quadratic error
+        # todo: Feed−forward all validation patterns and calculate their prediction quadratic error
+
+    def feed_forward(self, X):
+      # Feed−forward propagation of pattern xµ to obtain the output o(xµ)
+      for neuron in range(self.n[0]):
+        self.xi[0][neuron] = X[neuron]
+
+      for lay in range(1, self.L):
+        for neuron in range(self.n[lay]):
+          for j in range(self.n[lay - 1]):
+            self.h[lay][neuron] += self.w[lay][neuron][j] * self.xi[lay - 1][j]
+
+          self.h[lay][neuron] -= self.theta[lay][neuron]
+          self.xi[lay][neuron] = self.fact(self.h[lay][neuron])
+
+    def back_propagation(self, y):
+      # todo: Back−propagation of the error to obtain the delta values
+      pass
+      
+    def update_weights(self):
+      # todo: Update the weights and thresholds
+      pass
 
     def predict(self, X):
-      print("predict")
+      pass
 
     def loss_epochs(self):
-      print("loss_epochs")
+      pass
 
 # layers include input layer + hidden layers + output layer
 layers = [4, 9, 5, 1]
 
-# fact is a list of activation functions coded as lambda functions
-fact = []
-fact[0] = lambda x: 1 / (1 + np.exp(-x))
-fact[1] = lambda x: np.maximum(0, x)
-fact[2] = lambda x: np.tanh(x)
+# list of activation functions coded as lambda functions
+fact = [
+    lambda x: 1 / (1 + pow(2.71828, -x)),   # Sigmoid
+    lambda x: max(0, x),                    # ReLU
+    lambda x: x,                            # Linear
+    lambda x: (pow(2.71828, x) - pow(2.71828, -x)) / (pow(2.71828, x) + pow(2.71828, -x))  # Tanh
+]
 
-nn = MyNeuralNetwork(layers, fact[0])
+# todo: add read parameters from args
 
+nn = MyNeuralNetwork()  
+
+# todo: execute part
+
+# Check if the neural network is correctly initialized
 print("L = ", nn.L, end="\n")
 print("n = ", nn.n, end="\n")
 
