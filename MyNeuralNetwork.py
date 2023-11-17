@@ -2,7 +2,7 @@ import numpy as np
 
 # Neural Network class
 class MyNeuralNetwork:
-  def __init__(self, layers, activation_function, perc, dataset, epochs, learning_rate, momentum):
+  def __init__(self, layers, activation_function, derivative_function, perc, dataset, epochs, learning_rate, momentum):
     self.L = len(layers)                  # number of layers
     self.n = layers.copy()                        # number of neurons in each layer
     self.h = []                           # field values.
@@ -51,6 +51,7 @@ class MyNeuralNetwork:
     self.momentum = momentum              # momentum
     self.dataset = dataset                # dataset
     self.fact = activation_function       # activation function
+    self.derivative = derivative_function
     
     # Initialize all weights and thresholds randomly
     for lay in range(1, self.L):
@@ -72,14 +73,14 @@ class MyNeuralNetwork:
           # Choose a random pattern xµ from the training set
           xu = np.random.randint(0, self.training_set)
 
-          feed_forward(X[xu])
-          back_propagation()
-          update_weights()
+          __feed_forward(X[xu])
+          __back_propagation()
+          __update_weights()
 
         # todo: Feed−forward all training patterns and calculate their prediction quadratic error
         # todo: Feed−forward all validation patterns and calculate their prediction quadratic error
 
-    def feed_forward(self, X):
+    def __feed_forward(self, X):
       # Feed−forward propagation of pattern xµ to obtain the output o(xµ)
       for neuron in range(self.n[0]):
         self.xi[0][neuron] = X[neuron]
@@ -92,19 +93,30 @@ class MyNeuralNetwork:
           self.h[lay][neuron] -= self.theta[lay][neuron]
           self.xi[lay][neuron] = self.fact(self.h[lay][neuron])
 
-    def back_propagation(self, y):
-      # todo: Back−propagation of the error to obtain the delta values
-      pass
-      
-    def update_weights(self):
+    def __back_propagation(self, y):
+      # Back−propagation of the error to obtain the delta values
+
+      # First, we compute their values in the output layer
+      for neuron in range(self.n[self.L - 1]):
+        self.delta[self.L - 1][neuron] = (self.xi[self.L - 1][neuron] - y[neuron]) * self.derivative(self.h[self.L - 1][neuron])
+
+      # Back-propagate them to the rest of the network
+      for lay in range(self.L - 2, 0, -1):
+        for neuron in range(self.n[lay]):
+          for j in range(self.n[lay + 1]):
+            self.delta[lay][neuron] += self.w[lay + 1][j][neuron]
+          
+          self.delta[lay][neuron] *= self.derivative(self.h[lay][neuron])
+
+    def __update_weights(self):
       # todo: Update the weights and thresholds
-      pass
+
 
     def predict(self, X):
-      pass
+      
 
     def loss_epochs(self):
-      pass
+      
 
 # layers include input layer + hidden layers + output layer
 layers = [4, 9, 5, 1]
@@ -116,6 +128,14 @@ fact = [
     lambda x: x,                            # Linear
     lambda x: (pow(2.71828, x) - pow(2.71828, -x)) / (pow(2.71828, x) + pow(2.71828, -x))  # Tanh
 ]
+
+derivatives = [
+    lambda x: 1 / (1 + pow(2.71828, -x)) * 1 / (1 + pow(2.71828, -x)),  # Derivative of Sigmoid
+    lambda x: 1 if x > 0 else 0,                                        # Derivative of ReLU
+    lambda x: 1,                                                        # Derivative of Linear
+    lambda x: 1 - ((pow(2.71828, x) - pow(2.71828, -x)) / (pow(2.71828, x) + pow(2.71828, -x)))**2                      # Derivative of Tanh
+]
+
 
 # todo: add read parameters from args
 
