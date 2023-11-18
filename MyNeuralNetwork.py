@@ -4,7 +4,7 @@ import numpy as np
 class MyNeuralNetwork:
   def __init__(self, layers, activation_function, derivative_function, perc, dataset, epochs, learning_rate, momentum):
     self.L = len(layers)                  # number of layers
-    self.n = layers.copy()                        # number of neurons in each layer
+    self.n = layers.copy()                # number of neurons in each layer
     self.h = []                           # field values.
     for lay in range(self.L):
       self.h.append(np.zeros(layers[lay]))
@@ -30,7 +30,6 @@ class MyNeuralNetwork:
     self.d_w_prev.append(np.zeros((1, 1)))
     for lay in range(1, self.L):
       self.d_w_prev.append(np.zeros((layers[lay], layers[lay - 1])))
-
 
     self.d_theta_prev = []                # previous delta thresholds
     for lay in range(1, self.L):
@@ -59,31 +58,52 @@ class MyNeuralNetwork:
       self.theta[lay] = np.random.rand(self.n[lay]) - 0.5
     
     if self.perc != 0:
-      self.training_set = int(self.perc * len(self.dataset))
+      self.n_train = int(self.perc * len(self.dataset))
           
-      self.train_set = self.dataset[:self.training_set]
-      self.valid_set = self.dataset[self.training_set:]
+      self.training_set = self.dataset[:self.n_train]
+      self.training_set = self.dataset[self.n_train:]
 
     else:
       self.training_set = len(self.dataset)
 
     def fit(self, X, y):
+      errors_train = []
+      errors_valid = []
       for epoch in range(1, self.n_epochs):
-        for pat in range(self.training_set):
+        for pat in range(self.n_train):
           # Choose a random pattern xµ from the training set
           xu = np.random.randint(0, self.training_set)
 
-          __feed_forward(X[xu])
-          __back_propagation()
+          __feed_forward(X.xtable[xu])
+          __back_propagation(y.ytable[xu])
           __update_weights()
 
-        # todo: Feed−forward all training patterns and calculate their prediction quadratic error
-        # todo: Feed−forward all validation patterns and calculate their prediction quadratic error
+        # Feed−forward all training patterns and calculate their prediction quadratic error
+        for pat in self.training_set:
+          __feed_forward(pat)
 
-    def __feed_forward(self, X):
-      # Feed−forward propagation of pattern xµ to obtain the output o(xµ)
+        # Calculate error_train
+        errors_train.append(0)
+        for neuron in range(self.n[self.L - 1]):
+          errors_train[epoch] += pow(self.xi[self.L - 1][neuron] - y[pat][neuron], 2)
+        
+        errors_train[epoch] /= 2
+
+        # Feed−forward all validation patterns and calculate their prediction quadratic error
+        for pat in self.validation_set:
+          __feed_forward(pat)
+
+        # Calculate error_valid
+        errors_valid.append(0)
+        for neuron in range(self.n[self.L - 1]):
+          errors_valid[epoch] += pow(self.xi[self.L - 1][neuron] - y[pat][neuron], 2)
+
+        errors_valid[epoch] /= 2
+
+    # Feed−forward propagation of pattern xµ to obtain the output o(xµ)
+    def __feed_forward(self, xu):
       for neuron in range(self.n[0]):
-        self.xi[0][neuron] = X[neuron]
+        self.xi[0][neuron] = xu
 
       for lay in range(1, self.L):
         for neuron in range(self.n[lay]):
@@ -92,15 +112,16 @@ class MyNeuralNetwork:
 
           self.h[lay][neuron] -= self.theta[lay][neuron]
           self.xi[lay][neuron] = self.fact(self.h[lay][neuron])
+      
+      return self.xi[self.L - 1]
 
+    # Back−propagation of the error to obtain the delta values
     def __back_propagation(self, y):
-      # Back−propagation of the error to obtain the delta values
-
-      # First, we compute their values in the output layer
+      # Compute delta in the output layer
       for neuron in range(self.n[self.L - 1]):
         self.delta[self.L - 1][neuron] = (self.xi[self.L - 1][neuron] - y[neuron]) * self.derivative(self.h[self.L - 1][neuron])
 
-      # Back-propagate them to the rest of the network
+      # Back-propagate delta to the rest of the network
       for lay in range(self.L - 2, 0, -1):
         for neuron in range(self.n[lay]):
           for j in range(self.n[lay + 1]):
@@ -108,9 +129,18 @@ class MyNeuralNetwork:
           
           self.delta[lay][neuron] *= self.derivative(self.h[lay][neuron])
 
+    # Update the weights and thresholds
     def __update_weights(self):
-      # todo: Update the weights and thresholds
+      for lay in range(1, self.L):
+        for neuron in range(self.n[lay]):
+          for j in range(self.n[lay - 1]):
+            self.d_w[lay][neuron][j] = -self.learning_rate * self.delta[lay][neuron] * self.xi[lay - 1][j] + self.momentum * self.d_w_prev[lay][neuron][j]
+            self.w[lay][neuron][j] += self.d_w[lay][neuron][j]
+            self.d_w_prev[lay][neuron][j] = self.d_w[lay][neuron][j]
 
+          self.d_theta[lay][neuron] = self.learning_rate * self.delta[lay][neuron] + self.momentum * self.d_theta_prev[lay][neuron]
+          self.theta[lay][neuron] -= self.d_theta[lay][neuron]
+          self.d_theta_prev[lay][neuron] = self.d_theta[lay][neuron]
 
     def predict(self, X):
       
