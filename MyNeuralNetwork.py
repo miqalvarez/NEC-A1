@@ -2,7 +2,8 @@ import numpy as np
 
 # Neural Network class
 class MyNeuralNetwork:
-  def __init__(self, layers, activation_function, derivative_function, perc, dataset, epochs, learning_rate, momentum):
+  ### CONSTRUCTOR ###
+  def __init__(self, layers, activation_function, derivative_function, perc, epochs, learning_rate, momentum):
     self.L = len(layers)                  # number of layers
     self.n = layers.copy()                # number of neurons in each layer
     self.h = []                           # field values.
@@ -48,64 +49,81 @@ class MyNeuralNetwork:
     self.n_epochs = epochs                # number of epochs
     self.learning_rate = learning_rate    # learning rate
     self.momentum = momentum              # momentum
-    self.dataset = dataset                # dataset
     self.fact = activation_function       # activation function
-    self.derivative = derivative_function
+    self.derivative = derivative_function # derivative of activation function
     
     # Initialize all weights and thresholds randomly
     for lay in range(1, self.L):
       self.w[lay] = np.random.rand(self.n[lay], self.n[lay - 1]) - 0.5
-      self.theta[lay] = np.random.rand(self.n[lay]) - 0.5
-    
-    if self.perc != 0:
-      self.n_train = int(self.perc * len(self.dataset))
-          
-      self.training_set = self.dataset[:self.n_train]
-      self.training_set = self.dataset[self.n_train:]
+      self.theta[lay] = np.random.rand(self.n[lay]) - 0.5  
 
-    else:
-      self.training_set = len(self.dataset)
-
+    ### FUNCTIONS ###
+    # Train the neural network
+    # X: training samples
+    # y: target values
     def fit(self, X, y):
       errors_train = []
       errors_valid = []
+
+      if self.perc != 0:
+          n_train = int(self.perc * len(X))
+          training_set = X[:n_train]
+          y_train = y[:n_train]
+          validation_set = X[n_train:]
+          y_valid = y[n_train:]
+      else:
+          training_set = X
+          y_train = y
+          validation_set = None
+          y_valid = None
+
       for epoch in range(1, self.n_epochs):
         used = []
-        for pat in range(self.n_train):
+        for pat in range(n_train):
           # Choose a random pattern xµ from the training set
-          i = np.random.randint(0, self.n_train)
+          i = np.random.randint(0, n_train)
           while i in used:
-            i = np.random.randint(0, self.n_train)
+            i = np.random.randint(0, n_train)
 
           used.append(i)
 
-          xu = self.training_set[i]
+          xu = training_set[i]
+          yu = y_train[i]
 
           __feed_forward(xu)
-          __back_propagation(y[i])
+          __back_propagation(yu)
           __update_weights()
 
         # Feed−forward all training patterns and calculate their prediction quadratic error
-        for pat in self.training_set:
+        for pat in training_set:
           __feed_forward(pat)
 
           # Calculate error_train
-          errors_train[epoch] = 0
-          for neuron in range(self.n[self.L - 1]):
-            errors_train[epoch] += pow(self.xi[self.L - 1][neuron] - y[pat], 2)
-        
-        errors_train[epoch] /= 2
-
-        # Feed−forward all validation patterns and calculate their prediction quadratic error
-        for pat in self.validation_set:
-          __feed_forward(pat)
-
-          # Calculate error_valid
-          errors_valid[epoch] = 0
+          errors_train[epoch][0] = epoch
+          errors_train[epoch][1] = 0
           
           for neuron in range(self.n[self.L - 1]):
-            errors_valid[epoch] += pow(self.xi[self.L - 1][neuron] - y[pat], 2)
-          errors_valid[epoch] /= 2
+            errors_train[epoch][1] += pow(self.xi[self.L - 1][neuron] - y_train[pat], 2)
+        
+        errors_train[epoch][1] /= 2
+          
+        # Feed−forward all validation patterns and calculate their prediction quadratic error
+        if self.validation_set != None:
+
+          for pat in validation_set:
+            __feed_forward(pat)
+
+            # Calculate error_valid
+            errors_valid[epoch][0] = epoch
+            errors_valid[epoch][1] = 0
+            
+            for neuron in range(self.n[self.L - 1]):
+              errors_valid[epoch][1] += pow(self.xi[self.L - 1][neuron] - y_valid[pat], 2)
+            
+          errors_valid[epoch][1] /= 2
+
+        else:
+          errors_valid[epoch] = None
 
     # Feed−forward propagation of pattern xµ to obtain the output o(xµ)
     def __feed_forward(self, xu):
@@ -149,6 +167,9 @@ class MyNeuralNetwork:
           self.theta[lay][neuron] -= self.d_theta[lay][neuron]
           self.d_theta_prev[lay][neuron] = self.d_theta[lay][neuron]
 
+    # Predict the output for a given input
+    # X: samples
+    # return: predictions
     def predict(self, X):
       predictions = []
 
@@ -157,6 +178,7 @@ class MyNeuralNetwork:
 
       return predictions
       
+    # Return the 
     def loss_epochs(self):
       return self.errors_train, self.errors_valid
       
