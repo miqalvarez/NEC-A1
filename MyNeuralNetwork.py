@@ -66,7 +66,31 @@ class MyNeuralNetwork:
                 self.d_theta_prev[lay][neuron] = 0
 
     
-  
+    # Funciones de activación
+  def sigmoid(self,x):
+      return 1 / (1 + np.exp(-x))
+
+  def relu(x):
+      return np.maximum(0, x)
+
+  def linear(x):
+      return x
+
+  def tanh(x):
+      return np.tanh(x)
+
+  # Derivadas de las funciones de activación
+  def sigmoid_derivative(self,x):
+      return self.sigmoid(x) * (1 - self.sigmoid(x))
+
+  def relu_derivative(x):
+      return np.where(x > 0, 1, 0)
+
+  def linear_derivative(x):
+      return 1
+
+  def tanh_derivative(x):
+      return 1 - np.tanh(x)**2  
   ### FUNCTIONS ###
   # Train the neural network
   # X: training samples
@@ -89,54 +113,46 @@ class MyNeuralNetwork:
         y_valid = None
 
     for epoch in range(0, self.n_epochs):
-      # print("Epoch: ", epoch+1)
+      print("Epoch: ", epoch + 1)
       used = []
+
+      # Actualizar pesos en cada época
       for pat in range(n_train):
-        # Choose a random pattern xµ from the training set
-        i = np.random.randint(0, n_train)
-        while i in used:
           i = np.random.randint(0, n_train)
+          while i in used:
+              i = np.random.randint(0, n_train)
+          used.append(i)
 
-        used.append(i)
+          xu = training_set[i]
+          yu = y_train[i]
 
-        xu = training_set[i]
-        yu = y_train[i]
+          self.__feed_forward(xu)
+          self.__back_propagation(yu)
+          self.__update_weights()
 
-        self.__feed_forward(xu)
-        #print("Prediction: ", self.xi[self.L - 1][:])
-        #print("Target: ", yu)      
-        self.__back_propagation(yu)
-        self.__update_weights()
-      
-      # Feed−forward all training patterns and calculate their prediction quadratic error
+      # Calcular error de entrenamiento después de actualizar los pesos
       for index, pat in enumerate(training_set):
-        self.__feed_forward(pat)
-        
-        # Calculate quadratic error_train
-        self.errors_train[epoch][0] = epoch
-        self.errors_train[epoch][1] = 0
-
-        for neuron in range(self.n[self.L - 1]):
-          self.errors_train[epoch][1] += pow(self.xi[self.L - 1][neuron] - y_train[index], 2)
-
-      self.errors_train[epoch][1] /= 2
-
-      # Feed−forward all validation patterns and calculate their prediction quadratic error
-      if validation_set.all != None:
-        for index, pat in enumerate(validation_set):
           self.__feed_forward(pat)
-          
-          # Calculate quadratic error_valid
-          self.errors_valid[epoch][0] = epoch
-          self.errors_valid[epoch][1] = 0
+          self.errors_train[epoch][0] = epoch
+          self.errors_train[epoch][1] = 0
 
           for neuron in range(self.n[self.L - 1]):
-            self.errors_valid[epoch][1] += pow(self.xi[self.L - 1][neuron] - y_valid[index], 2)
+              self.errors_train[epoch][1] += pow(self.xi[self.L - 1][neuron] - y_train[index], 2)
 
-        self.errors_valid[epoch][1] /= 2
+    # Calcular error de validación después de cada época
+    if validation_set is not None:
+        for index, pat in enumerate(validation_set):
+            self.__feed_forward(pat)
+            self.errors_valid[epoch][0] = epoch
+            self.errors_valid[epoch][1] = 0
 
-      else:
+            for neuron in range(self.n[self.L - 1]):
+                self.errors_valid[epoch][1] += pow(self.xi[self.L - 1][neuron] - y_valid[index], 2)
+
+    else:
         self.errors_valid[epoch] = None
+
+
 
   # Feed−forward propagation of pattern xµ to obtain the output o(xµ)
   def __feed_forward(self, xu):
@@ -150,15 +166,15 @@ class MyNeuralNetwork:
           self.h[lay][neuron] += self.w[lay][neuron][j] * self.xi[lay - 1][j]
         
         self.h[lay][neuron] -= self.theta[lay][neuron]     
-        self.xi[lay][neuron] = self.fact(self.h[lay][neuron])
+        self.xi[lay][neuron] = self.sigmoid(self.h[lay][neuron])
     
-    return self.xi[self.L - 1]
+    return self.xi[self.L - 1][0]
 
   # Back−propagation of the error to obtain the delta values
   def __back_propagation(self, y):
     # Compute delta in the output layer
     for neuron in range(self.n[self.L - 1]):
-      self.delta[self.L - 1][neuron] = self.derivative(self.h[self.L - 1][neuron]) * (self.xi[self.L - 1][neuron] - y)
+      self.delta[self.L - 1][neuron] = self.sigmoid_derivative(self.h[self.L - 1][neuron]) * (self.xi[self.L - 1][neuron] - y)
 
     # Back-propagate delta to the rest of the network
     for lay in range(self.L - 2, 0, -1):
@@ -219,36 +235,40 @@ derivatives = [
 
 # todo: add read parameters from args
 
-nn = MyNeuralNetwork(layers, fact[0], derivatives[0],perc=0.85, epochs=1000, learning_rate=0.1, momentum=0.9)  
+nn = MyNeuralNetwork(layers, fact[0], derivatives[0],perc=0.80, epochs=500, learning_rate=0.1, momentum=0.9)  
 
-# Read data and get train, validation and test sets (85% train and validation ,15% test)
+# Read data and get train, validation and test sets
 data = np.loadtxt('A1-turbine-normalized.csv', delimiter=',', skiprows=1)
 np.random.shuffle(data)
-
-percentage_train_validation = 0.85
+  
+percentage_train_validation = 0.8
 index_split = int(percentage_train_validation * len(data))
 train_validation_set = data[:index_split]
 test_set = data[index_split:]
 
 # Train the neural network
-nn.fit(train_validation_set[0:-1], train_validation_set[-1]) 
+nn.fit(train_validation_set[:, :-1], train_validation_set[:, -1]) 
 
 # Get errors and plot them
 errors_train, errors_valid = nn.loss_epochs()
+print("Training error: ", errors_train)
+print("Validation error: ", errors_valid)
+
 plt.plot(errors_train[:, 0], errors_train[:, 1], label="train")
 plt.plot(errors_valid[:, 0], errors_valid[:, 1], label="validation")
 plt.legend()
 plt.show()
 
 # Predict
-predictions = nn.predict(test_set[0:-1])
+predictions = nn.predict(test_set[:, :-1])
 
 # Plot predictions vs real values
-plt.plot(y, label="real")
-plt.plot(predictions, label="prediction")
+plt.plot(predictions, label="predictions")
+plt.plot(test_set[:, -1], label="real values")
 plt.legend()
 plt.show()
 
+print("xi = ", nn.xi, end="\n")
 
 '''
 # Check if the neural network is correctly executed
