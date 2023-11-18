@@ -4,7 +4,7 @@ import numpy as np
 # Neural Network class
 class MyNeuralNetwork:
   ### CONSTRUCTOR ###
-  def __init__(self, layers, activation_function, derivative_function, perc, epochs, learning_rate, momentum):
+  def __init__(self, layers, activation_function, perc, epochs, learning_rate, momentum):
     self.L = len(layers)                  # number of layers
     self.n = layers.copy()                # number of neurons in each layer
     
@@ -45,10 +45,8 @@ class MyNeuralNetwork:
     self.learning_rate = learning_rate    # learning rate
     self.momentum = momentum              # momentum
     self.fact = activation_function       # activation function
-    self.derivative = derivative_function # derivative of activation function
     self.errors_train = []
     self.errors_valid = []
-    
     
     # Initialize weights and thresholds
     for lay in range(self.L):
@@ -65,32 +63,27 @@ class MyNeuralNetwork:
                 self.theta[lay][neuron] = np.random.uniform(-1, 1)
                 self.d_theta_prev[lay][neuron] = 0
 
-    
     # Funciones de activación
-  def sigmoid(self,x):
-      return 1 / (1 + np.exp(-x))
+  def act_function(self,x):
+      if self.fact == 0:
+        return 1 / (1 + np.exp(-x))
+      elif self.fact == 1:
+        return np.maximum(0, x)
+      elif self.fact == 2:
+        return x
+      elif self.fact == 3:
+        return np.tanh(x)
+  
+  def derivative(self,x):
+      if self.fact == 0:
+        return self.act_function(x) * (1 - self.act_function(x))
+      elif self.fact == 1:
+        return np.where(x > 0, 1, 0)
+      elif self.fact == 2:
+        return 1
+      elif self.fact == 3:
+        return 1 - np.tanh(x)**2
 
-  def relu(x):
-      return np.maximum(0, x)
-
-  def linear(x):
-      return x
-
-  def tanh(x):
-      return np.tanh(x)
-
-  # Derivadas de las funciones de activación
-  def sigmoid_derivative(self,x):
-      return self.sigmoid(x) * (1 - self.sigmoid(x))
-
-  def relu_derivative(x):
-      return np.where(x > 0, 1, 0)
-
-  def linear_derivative(x):
-      return 1
-
-  def tanh_derivative(x):
-      return 1 - np.tanh(x)**2  
   ### FUNCTIONS ###
   # Train the neural network
   # X: training samples
@@ -139,18 +132,18 @@ class MyNeuralNetwork:
           for neuron in range(self.n[self.L - 1]):
               self.errors_train[epoch][1] += pow(self.xi[self.L - 1][neuron] - y_train[index], 2)
 
-    # Calcular error de validación después de cada época
-    if validation_set is not None:
-        for index, pat in enumerate(validation_set):
-            self.__feed_forward(pat)
-            self.errors_valid[epoch][0] = epoch
-            self.errors_valid[epoch][1] = 0
+      # Calcular error de validación después de cada época
+      if validation_set is not None:
+          for index, pat in enumerate(validation_set):
+              self.__feed_forward(pat)
+              self.errors_valid[epoch][0] = epoch
+              self.errors_valid[epoch][1] = 0
 
-            for neuron in range(self.n[self.L - 1]):
-                self.errors_valid[epoch][1] += pow(self.xi[self.L - 1][neuron] - y_valid[index], 2)
+              for neuron in range(self.n[self.L - 1]):
+                  self.errors_valid[epoch][1] += pow(self.xi[self.L - 1][neuron] - y_valid[index], 2)
 
-    else:
-        self.errors_valid[epoch] = None
+      else:
+          self.errors_valid[epoch] = None
 
 
 
@@ -166,7 +159,7 @@ class MyNeuralNetwork:
           self.h[lay][neuron] += self.w[lay][neuron][j] * self.xi[lay - 1][j]
         
         self.h[lay][neuron] -= self.theta[lay][neuron]     
-        self.xi[lay][neuron] = self.sigmoid(self.h[lay][neuron])
+        self.xi[lay][neuron] = self.act_function(self.h[lay][neuron])
     
     return self.xi[self.L - 1][0]
 
@@ -174,7 +167,7 @@ class MyNeuralNetwork:
   def __back_propagation(self, y):
     # Compute delta in the output layer
     for neuron in range(self.n[self.L - 1]):
-      self.delta[self.L - 1][neuron] = self.sigmoid_derivative(self.h[self.L - 1][neuron]) * (self.xi[self.L - 1][neuron] - y)
+      self.delta[self.L - 1][neuron] = self.derivative(self.h[self.L - 1][neuron]) * (self.xi[self.L - 1][neuron] - y)
 
     # Back-propagate delta to the rest of the network
     for lay in range(self.L - 2, 0, -1):
@@ -217,31 +210,15 @@ class MyNeuralNetwork:
 # layers include input layer + hidden layers + output layer
 layers = [4, 9, 6, 1]
 
-# list of activation functions coded as lambda functions
-fact = [
-    lambda x: 1 / (1 + np.exp(-x)),         # Sigmoid
-    lambda x: max(0, x),                    # ReLU
-    lambda x: x,                            # Linear
-    lambda x: (pow(2.71828, x) - pow(2.71828, -x)) / (pow(2.71828, x) + pow(2.71828, -x))  # Tanh
-]
-
-derivatives = [
-    lambda x: (1 / (1 + np.exp(-x)))*1-(1 / (1 + np.exp(-x))),  # Derivative of Sigmoid
-    lambda x: 1 if x > 0 else 0,                                        # Derivative of ReLU
-    lambda x: 1,                                                        # Derivative of Linear
-    lambda x: 1 - ((pow(2.71828, x) - pow(2.71828, -x)) / (pow(2.71828, x) + pow(2.71828, -x)))**2                      # Derivative of Tanh
-]
-
-
 # todo: add read parameters from args
 
-nn = MyNeuralNetwork(layers, fact[0], derivatives[0],perc=0.80, epochs=500, learning_rate=0.1, momentum=0.9)  
+nn = MyNeuralNetwork(layers, activation_function=0,perc=0.80, epochs=500, learning_rate=0.1, momentum=0.9)  
 
 # Read data and get train, validation and test sets
-data = np.loadtxt('A1-turbine-normalized.csv', delimiter=',', skiprows=1)
+data = np.loadtxt('Medical_insurance_normalized.csv', delimiter=',', skiprows=1)
 np.random.shuffle(data)
   
-percentage_train_validation = 0.8
+percentage_train_validation = 0.85
 index_split = int(percentage_train_validation * len(data))
 train_validation_set = data[:index_split]
 test_set = data[index_split:]
