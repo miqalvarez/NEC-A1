@@ -1,5 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
+import json
 
 # Neural Network class
 class MyNeuralNetwork:
@@ -54,35 +55,42 @@ class MyNeuralNetwork:
             # Si es la capa de entrada, no hay pesos para inicializar
             if lay > 0:
                 for j in range(self.n[lay - 1]):
-                    # Asegúrate de que las dimensiones de self.w sean correctas
-                    self.w[lay][neuron][j] = np.random.uniform(-1, 1)
-                    self.d_w_prev[lay][neuron][j] = 0
+                  self.w[lay][neuron][j] = np.random.uniform(-1, 1)
+
+                  self.d_w_prev[lay][neuron][j] = 0
 
             # Solo inicializa los umbrales para las capas ocultas y de salida
             if lay > 0 and lay < self.L - 1:
                 self.theta[lay][neuron] = np.random.uniform(-1, 1)
+                
                 self.d_theta_prev[lay][neuron] = 0
 
-    # Funciones de activación
-  def act_function(self,x):
+  # Activation function
+  def act_function(self, x):
       if self.fact == 0:
-        return 1 / (1 + np.exp(-x))
+          return 1 / (1 + np.exp(-x))
       elif self.fact == 1:
-        return np.maximum(0, x)
+            if x>0 :
+              return x
+            else :
+              return 0.01*x
       elif self.fact == 2:
-        return x
+          return x
       elif self.fact == 3:
-        return np.tanh(x)
-  
-  def derivative(self,x):
+          return np.tanh(x)
+
+  def derivative(self, x):
       if self.fact == 0:
-        return self.act_function(x) * (1 - self.act_function(x))
+          return self.act_function(x) * (1 - self.act_function(x))
       elif self.fact == 1:
-        return np.where(x > 0, 1, 0)
+            if x>=0 :
+              return 1
+            else :
+              return 0.01
       elif self.fact == 2:
-        return 1
+          return np.ones_like(x)
       elif self.fact == 3:
-        return 1 - np.tanh(x)**2
+          return 1 - np.tanh(x)**2
 
   ### FUNCTIONS ###
   # Train the neural network
@@ -207,18 +215,30 @@ class MyNeuralNetwork:
     return self.errors_train, self.errors_valid
       
 
-# layers include input layer + hidden layers + output layer
-layers = [4, 9, 6, 1]
+### MAIN ###
+with open('config.json', 'r') as config_file:
+    config_data = json.load(config_file)
 
-# todo: add read parameters from args
-
-nn = MyNeuralNetwork(layers, activation_function=0,perc=0.80, epochs=500, learning_rate=0.1, momentum=0.9)  
+# Crear una instancia de MyNeuralNetwork con los valores leídos
+nn = MyNeuralNetwork(
+    layers=config_data["layers"],
+    activation_function=config_data["activation_function"],
+    perc=config_data["perc"],
+    epochs=config_data["epochs"],
+    learning_rate=config_data["learning_rate"],
+    momentum=config_data["momentum"]
+)
 
 # Read data and get train, validation and test sets
-data = np.loadtxt('Medical_insurance_normalized.csv', delimiter=',', skiprows=1)
+data = np.loadtxt(
+    config_data["csv_file"],
+    delimiter=config_data["delimiter"],
+    skiprows=config_data["skiprows"]
+)
+
 np.random.shuffle(data)
   
-percentage_train_validation = 0.85
+percentage_train_validation = config_data["train_validation_split"]
 index_split = int(percentage_train_validation * len(data))
 train_validation_set = data[:index_split]
 test_set = data[index_split:]
@@ -231,55 +251,21 @@ errors_train, errors_valid = nn.loss_epochs()
 print("Training error: ", errors_train)
 print("Validation error: ", errors_valid)
 
-plt.plot(errors_train[:, 0], errors_train[:, 1], label="train")
-plt.plot(errors_valid[:, 0], errors_valid[:, 1], label="validation")
+# Scatter plot of the training and validation errors
+plt.scatter(errors_train[:, 0], errors_train[:, 1], label="Training error")
+plt.scatter(errors_valid[:, 0], errors_valid[:, 1], label="Validation error")
 plt.legend()
 plt.show()
 
 # Predict
 predictions = nn.predict(test_set[:, :-1])
 
-# Plot predictions vs real values
-plt.plot(predictions, label="predictions")
-plt.plot(test_set[:, -1], label="real values")
-plt.legend()
+# Scatter Plot predictions vs real values
+plt.scatter(test_set[:, -1], predictions)
+plt.xlabel("Real values")
+plt.ylabel("Predictions")
 plt.show()
 
-print("xi = ", nn.xi, end="\n")
-
-'''
-# Check if the neural network is correctly executed
-print("L = ", nn.L, end="\n")
-print("n = ", nn.n, end="\n")
-
-print("h = ", nn.h, end="\n")
-print("h[1] = ", nn.h[1], end="\n")
-
-print("xi = ", nn.xi, end="\n")
-print("xi[0] = ", nn.xi[0], end="\n")
-print("xi[1] = ", nn.xi[0], end="\n")
-
-print("w = ", nn.w, end="\n")
-print("w[0] = ", nn.w[0], end="\n")
-print("w[1] = ", nn.w[1], end="\n")
-
-print("theta = ", nn.theta, end="\n")
-print("theta[1] = ", nn.theta[1], end="\n")
-
-print("delta = ", nn.delta, end="\n")
-print("delta[1] = ", nn.delta[1], end="\n")
-
-print("d_w = ", nn.d_w, end="\n")
-print("d_w[1] = ", nn.d_w[1], end="\n")
-
-print("d_theta = ", nn.d_theta, end="\n")
-print("d_theta[1] = ", nn.d_theta[1], end="\n")
-
-print("d_w_prev = ", nn.d_w_prev, end="\n")
-print("d_w_prev[1] = ", nn.d_w_prev[1], end="\n")
-
-print("d_theta_prev = ", nn.d_theta_prev, end="\n")
-print("d_theta_prev[1] = ", nn.d_theta_prev[1], end="\n")
-
-print("fact = ", nn.fact, end="\n")
-'''
+# Compute MAPE
+mape = np.mean(np.abs((test_set[:, -1] - predictions) / test_set[:, -1])) * 100
+print("MAPE: ", mape)
