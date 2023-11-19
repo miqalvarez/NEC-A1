@@ -1,0 +1,2 @@
+# NEC-A1
+`MyNeuralNetwork` is a Python package that implements a Neural Network (NN) utilizing online Backpropagation (BP) for training. The neural network reads data from a configuration file (e.g., `config.json`). Additionally, the repository provides three datasets along with two Jupyter notebooks for each dataset. One notebook focuses on normalization and preprocessing, while the other compares the dataset using SKLearn Linear Regression and Keras.
