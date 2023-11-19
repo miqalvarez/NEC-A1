@@ -1,11 +1,11 @@
 {
-    "layers": [9, 10, 8, 6, 1],
-    "activation_function": 0,
+    "layers": [8, 10, 6, 1],
+    "activation_function": 3,
     "perc": 0.80,
-    "epochs": 800,
-    "learning_rate": 0.01,
-    "momentum": 0.9,
-    "csv_file": "A1-synthetic-normalized.csv",
+    "epochs": 400,
+    "learning_rate": 0.1,
+    "momentum": 0.7,
+    "csv_file": "Medical-insurance-normalized.csv",
     "delimiter": ",",
     "skiprows": 1,
     "train_validation_split": 0.80

@@ -95,7 +95,7 @@ class MyNeuralNetwork:
   def fit(self, X, y):
     self.errors_train = np.zeros((self.n_epochs, 2))
     self.errors_valid = np.zeros((self.n_epochs, 2))
-    # print("Training...")
+    print("Training...")
     
     if self.perc != 0:
         n_train = int(self.perc * len(X))
@@ -110,10 +110,10 @@ class MyNeuralNetwork:
         y_valid = None
 
     for epoch in range(0, self.n_epochs):
-      # print("Epoch: ", epoch + 1)
+      print("Epoch: ", epoch + 1)
       used = []
 
-      # Actualizar pesos en cada época
+      # Update weights for each pattern
       for pat in range(n_train):
           i = np.random.randint(0, n_train)
           while i in used:
@@ -127,7 +127,7 @@ class MyNeuralNetwork:
           self.__back_propagation(yu)
           self.__update_weights()
 
-      # Calcular error de entrenamiento después de actualizar los pesos
+      # Calculate training error after each epoch
       for index, pat in enumerate(training_set):
           self.__feed_forward(pat)
           self.errors_train[epoch][0] = epoch
@@ -136,7 +136,7 @@ class MyNeuralNetwork:
           for neuron in range(self.n[self.L - 1]):
               self.errors_train[epoch][1] += pow(self.xi[self.L - 1][neuron] - y_train[index], 2)
 
-      # Calcular error de validación después de cada época
+      # Calculate validation error after each epoch
       if validation_set is not None:
           for index, pat in enumerate(validation_set):
               self.__feed_forward(pat)
@@ -215,7 +215,6 @@ class MyNeuralNetwork:
 with open('config.json', 'r') as config_file:
     config_data = json.load(config_file)
 
-# Crear una instancia de MyNeuralNetwork con los valores leídos
 nn = MyNeuralNetwork(
     layers=config_data["layers"],
     activation_function=config_data["activation_function"],
