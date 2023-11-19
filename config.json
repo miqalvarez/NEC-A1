@@ -1,12 +1,12 @@
 {
-    "layers": [4, 9, 6, 1],
-    "activation_function": 3,
-    "perc": 0.85,
-    "epochs": 250,
-    "learning_rate": 0.05,
+    "layers": [9, 10, 8, 6, 1],
+    "activation_function": 0,
+    "perc": 0.80,
+    "epochs": 800,
+    "learning_rate": 0.01,
     "momentum": 0.9,
-    "csv_file": "A1-turbine-normalized.csv",
+    "csv_file": "A1-synthetic-normalized.csv",
     "delimiter": ",",
     "skiprows": 1,
-    "train_validation_split": 0.85
+    "train_validation_split": 0.80
 }

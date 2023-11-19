@@ -52,17 +52,13 @@ class MyNeuralNetwork:
     # Initialize weights and thresholds
     for lay in range(self.L):
         for neuron in range(self.n[lay]):
-            # Si es la capa de entrada, no hay pesos para inicializar
             if lay > 0:
                 for j in range(self.n[lay - 1]):
-                  self.w[lay][neuron][j] = np.random.uniform(-1, 1)
+                    self.w[lay][neuron][j] = np.random.uniform(-1, 1)
+                    self.d_w_prev[lay][neuron][j] = 0
 
-                  self.d_w_prev[lay][neuron][j] = 0
-
-            # Solo inicializa los umbrales para las capas ocultas y de salida
             if lay > 0 and lay < self.L - 1:
                 self.theta[lay][neuron] = np.random.uniform(-1, 1)
-                
                 self.d_theta_prev[lay][neuron] = 0
 
   # Activation function
@@ -99,7 +95,7 @@ class MyNeuralNetwork:
   def fit(self, X, y):
     self.errors_train = np.zeros((self.n_epochs, 2))
     self.errors_valid = np.zeros((self.n_epochs, 2))
-    print("Training...")
+    # print("Training...")
     
     if self.perc != 0:
         n_train = int(self.perc * len(X))
@@ -114,7 +110,7 @@ class MyNeuralNetwork:
         y_valid = None
 
     for epoch in range(0, self.n_epochs):
-      print("Epoch: ", epoch + 1)
+      # print("Epoch: ", epoch + 1)
       used = []
 
       # Actualizar pesos en cada época
@@ -236,8 +232,10 @@ data = np.loadtxt(
     skiprows=config_data["skiprows"]
 )
 
+# Shuffle data
 np.random.shuffle(data)
-  
+
+# Split data into train_validation and test sets
 percentage_train_validation = config_data["train_validation_split"]
 index_split = int(percentage_train_validation * len(data))
 train_validation_set = data[:index_split]
@@ -248,8 +246,6 @@ nn.fit(train_validation_set[:, :-1], train_validation_set[:, -1])
 
 # Get errors and plot them
 errors_train, errors_valid = nn.loss_epochs()
-print("Training error: ", errors_train)
-print("Validation error: ", errors_valid)
 
 # Scatter plot of the training and validation errors
 plt.scatter(errors_train[:, 0], errors_train[:, 1], label="Training error")
@@ -266,6 +262,8 @@ plt.xlabel("Real values")
 plt.ylabel("Predictions")
 plt.show()
 
-# Compute MAPE
-mape = np.mean(np.abs((test_set[:, -1] - predictions) / test_set[:, -1])) * 100
+# Compute MAPE using sklearn
+from sklearn.metrics import mean_absolute_percentage_error
+mape = mean_absolute_percentage_error(test_set[:, -1], predictions)
+
 print("MAPE: ", mape)
